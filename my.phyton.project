@@ -1,1 +1,396 @@
-mp
+import pygame
+import random
+
+pygame.init()
+W, H = 400, 600
+screen = pygame.display.set_mode((W, H))
+clock = pygame.time.Clock()
+
+# Colors
+BG = (35, 35, 45)
+BOARD_LIGHT = (240, 217, 181)
+BOARD_DARK = (181, 136, 99)
+RED_PIECE = (200, 40, 40)
+RED_PIECE_LIGHT = (240, 80, 80)
+BLACK_PIECE = (50, 50, 50)
+BLACK_PIECE_LIGHT = (90, 90, 90)
+HIGHLIGHT = (100, 255, 100, 150)
+VALID_MOVE = (0, 200, 100)
+WHITE = (255, 255, 255)
+GRAY = (150, 150, 150)
+GOLD = (255, 215, 0)
+SEL_COLOR = (255, 255, 0)
+
+# Board
+BOARD_SIZE = 8
+CELL = min((W - 20) // BOARD_SIZE, (H - 160) // BOARD_SIZE)
+BOARD_X = (W - BOARD_SIZE * CELL) // 2
+BOARD_Y = 70
+PIECE_R = CELL // 2 - 4
+
+# Pieces: 'r' = red, 'b' = black, 'R' = red king, 'B' = black king
+board = [[None] * BOARD_SIZE for _ in range(BOARD_SIZE)]
+
+def init_board():
+    global board
+    board = [[None] * BOARD_SIZE for _ in range(BOARD_SIZE)]
+    for r in range(BOARD_SIZE):
+        for c in range(BOARD_SIZE):
+            if (r + c) % 2 == 1:
+                if r < 3:
+                    board[r][c] = 'b'
+                elif r > 4:
+                    board[r][c] = 'r'
+
+init_board()
+
+turn = 'r'  # 'r' = player (red), 'b' = AI (black)
+selected = None
+valid_moves = []
+game_over = False
+winner = None
+must_jump = False
+message = "Your turn (Red)"
+
+def get_moves(r, c, brd=None):
+    if brd is None:
+        brd = board
+    piece = brd[r][c]
+    if piece is None:
+        return [], []
+    moves = []
+    jumps = []
+    is_king = piece in ('R', 'B')
+    color = piece.lower()
+    if color == 'r':
+        dirs = [(-1, -1), (-1, 1)]
+        if is_king:
+            dirs += [(1, -1), (1, 1)]
+    else:
+        dirs = [(1, -1), (1, 1)]
+        if is_king:
+            dirs += [(-1, -1), (-1, 1)]
+
+    for dr, dc in dirs:
+        nr, nc = r + dr, c + dc
+        if 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
+            if brd[nr][nc] is None:
+                moves.append((nr, nc))
+            elif brd[nr][nc].lower() != color:
+                jr, jc = nr + dr, nc + dc
+                if 0 <= jr < BOARD_SIZE and 0 <= jc < BOARD_SIZE and brd[jr][jc] is None:
+                    jumps.append((jr, jc, nr, nc))
+    return moves, jumps
+
+def has_any_jumps(color, brd=None):
+    if brd is None:
+        brd = board
+    for r in range(BOARD_SIZE):
+        for c in range(BOARD_SIZE):
+            if brd[r][c] and brd[r][c].lower() == color:
+                _, jumps = get_moves(r, c, brd)
+                if jumps:
+                    return True
+    return False
+
+def has_any_moves(color):
+    for r in range(BOARD_SIZE):
+        for c in range(BOARD_SIZE):
+            if board[r][c] and board[r][c].lower() == color:
+                moves, jumps = get_moves(r, c)
+                if moves or jumps:
+                    return True
+    return False
+
+def make_move(r1, c1, r2, c2, captured=None):
+    board[r2][c2] = board[r1][c1]
+    board[r1][c1] = None
+    if captured:
+        board[captured[0]][captured[1]] = None
+    # King promotion
+    if board[r2][c2] == 'r' and r2 == 0:
+        board[r2][c2] = 'R'
+    elif board[r2][c2] == 'b' and r2 == BOARD_SIZE - 1:
+        board[r2][c2] = 'B'
+
+def count_pieces(color):
+    count = 0
+    for r in range(BOARD_SIZE):
+        for c in range(BOARD_SIZE):
+            if board[r][c] and board[r][c].lower() == color:
+                count += 1
+    return count
+
+def check_game_over():
+    global game_over, winner, message
+    red_count = count_pieces('r')
+    black_count = count_pieces('b')
+    if red_count == 0:
+        game_over = True
+        winner = 'b'
+        message = "Black wins!"
+    elif black_count == 0:
+        game_over = True
+        winner = 'r'
+        message = "Red wins!"
+    elif not has_any_moves(turn):
+        game_over = True
+        winner = 'r' if turn == 'b' else 'b'
+        message = f"{'Red' if winner == 'r' else 'Black'} wins!"
+
+def ai_move():
+    global turn, message
+    # Collect all possible moves for black
+    all_jumps = []
+    all_moves = []
+    for r in range(BOARD_SIZE):
+        for c in range(BOARD_SIZE):
+            if board[r][c] and board[r][c].lower() == 'b':
+                moves, jumps = get_moves(r, c)
+                for jr, jc, cr, cc in jumps:
+                    all_jumps.append((r, c, jr, jc, cr, cc))
+                if not has_any_jumps('b'):
+                    for mr, mc in moves:
+                        all_moves.append((r, c, mr, mc))
+
+    if all_jumps:
+        # Must jump - pick best jump (prefer kings capturing, then random)
+        # Try multi-jumps
+        best = None
+        best_count = 0
+        for j in all_jumps:
+            r1, c1, r2, c2, cr, cc = j
+            count = 1
+            # Simulate
+            temp_board = [row[:] for row in board]
+            temp_board[r2][c2] = temp_board[r1][c1]
+            temp_board[r1][c1] = None
+            temp_board[cr][cc] = None
+            if temp_board[r2][c2] == 'b' and r2 == BOARD_SIZE - 1:
+                temp_board[r2][c2] = 'B'
+            _, more_jumps = get_moves(r2, c2, temp_board)
+            count += len(more_jumps)
+            if count > best_count:
+                best_count = count
+                best = j
+        if best is None:
+            best = random.choice(all_jumps)
+        r1, c1, r2, c2, cr, cc = best
+        make_move(r1, c1, r2, c2, (cr, cc))
+        # Check for multi-jump
+        while True:
+            _, jumps = get_moves(r2, c2)
+            if not jumps:
+                break
+            j = random.choice(jumps)
+            jr, jc, cr2, cc2 = j
+            make_move(r2, c2, jr, jc, (cr2, cc2))
+            r2, c2 = jr, jc
+    elif all_moves:
+        # Prefer moves that advance or protect
+        move = random.choice(all_moves)
+        r1, c1, r2, c2 = move
+        make_move(r1, c1, r2, c2)
+    turn = 'r'
+    message = "Your turn (Red)"
+    check_game_over()
+
+def get_valid_for_selected(sr, sc):
+    moves_list = []
+    moves, jumps = get_moves(sr, sc)
+    force_jump = has_any_jumps('r')
+    if force_jump:
+        for jr, jc, cr, cc in jumps:
+            moves_list.append((jr, jc, cr, cc))
+    else:
+        for mr, mc in moves:
+            moves_list.append((mr, mc, None, None))
+    return moves_list
+
+def draw_board():
+    for r in range(BOARD_SIZE):
+        for c in range(BOARD_SIZE):
+            x = BOARD_X + c * CELL
+            y = BOARD_Y + r * CELL
+            color = BOARD_LIGHT if (r + c) % 2 == 0 else BOARD_DARK
+            pygame.draw.rect(screen, color, (x, y, CELL, CELL))
+
+    # Highlight selected
+    if selected:
+        sr, sc = selected
+        x = BOARD_X + sc * CELL
+        y = BOARD_Y + sr * CELL
+        pygame.draw.rect(screen, SEL_COLOR, (x, y, CELL, CELL), 3)
+
+    # Show valid moves
+    for vm in valid_moves:
+        vr, vc = vm[0], vm[1]
+        cx = BOARD_X + vc * CELL + CELL // 2
+        cy = BOARD_Y + vr * CELL + CELL // 2
+        pygame.draw.circle(screen, VALID_MOVE, (cx, cy), 8)
+
+    # Draw pieces
+    for r in range(BOARD_SIZE):
+        for c in range(BOARD_SIZE):
+            piece = board[r][c]
+            if piece:
+                cx = BOARD_X + c * CELL + CELL // 2
+                cy = BOARD_Y + r * CELL + CELL // 2
+                is_king = piece in ('R', 'B')
+                if piece.lower() == 'r':
+                    # Shadow
+                    pygame.draw.circle(screen, (100, 20, 20), (cx + 2, cy + 2), PIECE_R)
+                    pygame.draw.circle(screen, RED_PIECE, (cx, cy), PIECE_R)
+                    pygame.draw.circle(screen, RED_PIECE_LIGHT, (cx - 3, cy - 3), PIECE_R // 3)
+                    pygame.draw.circle(screen, (160, 30, 30), (cx, cy), PIECE_R, 2)
+                else:
+                    pygame.draw.circle(screen, (20, 20, 20), (cx + 2, cy + 2), PIECE_R)
+                    pygame.draw.circle(screen, BLACK_PIECE, (cx, cy), PIECE_R)
+                    pygame.draw.circle(screen, BLACK_PIECE_LIGHT, (cx - 3, cy - 3), PIECE_R // 3)
+                    pygame.draw.circle(screen, (30, 30, 30), (cx, cy), PIECE_R, 2)
+                if is_king:
+                    # Crown
+                    kf = pygame.font.Font(None, CELL // 2)
+                    kt = kf.render('K', True, GOLD)
+                    kr = kt.get_rect(center=(cx, cy))
+                    screen.blit(kt, kr)
+
+running = True
+ai_timer = 0
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            tx, ty = event.pos
+            if game_over:
+                init_board()
+                turn = 'r'
+                selected = None
+                valid_moves = []
+                game_over = False
+                winner = None
+                message = "Your turn (Red)"
+                continue
+
+            if turn != 'r':
+                continue
+
+            # Convert to board coords
+            bc = (tx - BOARD_X) // CELL
+            br = (ty - BOARD_Y) // CELL
+
+            if 0 <= br < BOARD_SIZE and 0 <= bc < BOARD_SIZE:
+                # If clicking on own piece, select it
+                if board[br][bc] and board[br][bc].lower() == 'r':
+                    selected = (br, bc)
+                    valid_moves = get_valid_for_selected(br, bc)
+                elif selected:
+                    # Try to move to this square
+                    moved = False
+                    for vm in valid_moves:
+                        if vm[0] == br and vm[1] == bc:
+                            sr, sc = selected
+                            captured = (vm[2], vm[3]) if vm[2] is not None else None
+                            make_move(sr, sc, br, bc, captured)
+                            moved = True
+                            # Check multi-jump
+                            if captured:
+                                _, more_jumps = get_moves(br, bc)
+                                if more_jumps:
+                                    selected = (br, bc)
+                                    valid_moves = []
+                                    for jr, jc, cr, cc in more_jumps:
+                                        valid_moves.append((jr, jc, cr, cc))
+                                    message = "Continue jumping!"
+                                    break
+                            selected = None
+                            valid_moves = []
+                            check_game_over()
+                            if not game_over:
+                                turn = 'b'
+                                message = "Black thinking..."
+                                ai_timer = 20
+                            break
+                    if not moved:
+                        selected = None
+                        valid_moves = []
+
+    # AI move with delay
+    if turn == 'b' and not game_over:
+        ai_timer -= 1
+        if ai_timer <= 0:
+            ai_move()
+
+    # Draw
+    screen.fill(BG)
+
+    # Title / status bar
+    font = pygame.font.Font(None, 28)
+    msg_color = WHITE
+    if "Red" in message:
+        msg_color = (255, 120, 120)
+    elif "Black" in message:
+        msg_color = (180, 180, 180)
+    mt = font.render(message, True, msg_color)
+    mr = mt.get_rect(center=(W // 2, 25))
+    screen.blit(mt, mr)
+
+    # Piece counts
+    red_count = count_pieces('r')
+    black_count = count_pieces('b')
+    sf = pygame.font.Font(None, 24)
+    rt = sf.render(f'Red: {red_count}', True, (255, 120, 120))
+    screen.blit(rt, (10, 47))
+    bt = sf.render(f'Black: {black_count}', True, (180, 180, 180))
+    screen.blit(bt, (W - 90, 47))
+
+    # Draw board
+    draw_board()
+
+    # Board border
+    pygame.draw.rect(screen, (120, 100, 80),
+        (BOARD_X - 2, BOARD_Y - 2, BOARD_SIZE * CELL + 4, BOARD_SIZE * CELL + 4), 3)
+
+    # Instructions at bottom
+    if not game_over:
+        inf = pygame.font.Font(None, 22)
+        force = has_any_jumps('r') if turn == 'r' else False
+        if force and turn == 'r':
+            it = inf.render('You must jump!', True, (255, 200, 100))
+        else:
+            it = inf.render('Tap piece to select, tap to move', True, GRAY)
+        ir = it.get_rect(center=(W // 2, BOARD_Y + BOARD_SIZE * CELL + 30))
+        screen.blit(it, ir)
+
+    # Game over overlay
+    if game_over:
+        overlay = pygame.Surface((W, H))
+        overlay.fill((0, 0, 0))
+        overlay.set_alpha(140)
+        screen.blit(overlay, (0, 0))
+
+        bf = pygame.font.Font(None, 52)
+        if winner == 'r':
+            wt = bf.render('You Win!', True, (100, 255, 100))
+        else:
+            wt = bf.render('You Lose!', True, RED_PIECE_LIGHT)
+        wr = wt.get_rect(center=(W // 2, H // 2 - 30))
+        screen.blit(wt, wr)
+
+        sf2 = pygame.font.Font(None, 30)
+        wn = 'Red' if winner == 'r' else 'Black'
+        st = sf2.render(f'{wn} wins the game', True, WHITE)
+        sr = st.get_rect(center=(W // 2, H // 2 + 15))
+        screen.blit(st, sr)
+
+        hf = pygame.font.Font(None, 26)
+        ht = hf.render('Tap to play again', True, GRAY)
+        hr = ht.get_rect(center=(W // 2, H // 2 + 55))
+        screen.blit(ht, hr)
+
+    pygame.display.flip()
+    clock.tick(30)
+
+pygame.quit()
