@@ -1,43 +1,20 @@
-const menuButton = document.querySelector(".menu-button");
-const nav = document.querySelector(".nav-links");
-const themeButton = document.querySelector(".theme-button");
-const contactForm = document.querySelector("#contact-form");
-const formStatus = document.querySelector(".form-status");
+document.getElementById("year").textContent = new Date().getFullYear();
 
-menuButton?.addEventListener("click", () => {
-  const isOpen = nav.classList.toggle("open");
-  menuButton.setAttribute("aria-expanded", String(isOpen));
+const travelMomentBtn = document.getElementById("travelMoment");
+const quoteBox = document.getElementById("quote-box");
+
+const travelNotes = [
+  '"Savor the journey—every bite is a new story from the road."',
+  '"A bowl of Tom Yum is a passport to Thailand in one fragrant sip."',
+  '"The best memories are made where the spice meets the breeze."'
+];
+
+travelMomentBtn.addEventListener("click", () => {
+  const nextQuote = travelNotes[Math.floor(Math.random() * travelNotes.length)];
+  quoteBox.textContent = nextQuote;
+  travelMomentBtn.textContent = "Fresh inspiration loaded";
+
+  setTimeout(() => {
+    travelMomentBtn.textContent = "Inspire my next trip";
+  }, 1200);
 });
-
-nav?.querySelectorAll("a").forEach((link) => {
-  link.addEventListener("click", () => {
-    nav.classList.remove("open");
-    menuButton?.setAttribute("aria-expanded", "false");
-  });
-});
-
-themeButton?.addEventListener("click", () => {
-  const lightMode = document.body.classList.toggle("light-mode");
-  themeButton.setAttribute("aria-pressed", String(lightMode));
-  themeButton.textContent = lightMode ? "☾" : "☼";
-  themeButton.setAttribute("aria-label", lightMode ? "Use dark mode" : "Use light mode");
-});
-
-contactForm?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const name = new FormData(contactForm).get("name");
-  formStatus.textContent = `Thanks, ${name || "there"} — your message is queued for the band.`;
-  contactForm.reset();
-});
-
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add("visible");
-      observer.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.12 });
-
-document.querySelectorAll(".reveal").forEach((element) => observer.observe(element));
-document.querySelector("[data-year]").textContent = new Date().getFullYear();
