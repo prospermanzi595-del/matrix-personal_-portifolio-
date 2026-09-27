@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Embark on a culinary adventure with Taste of Travel, exploring global flavors and recipes."
+    />
+    <title>Taste of Travel</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">Taste of Travel</div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#recipe">Recipe</a>
+        <a href="#ingredients">Ingredients</a>
+        <a href="#tips">Tips</a>
+      </nav>
+    </header>
+
+    <main class="container">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Culinary escape</p>
+          <h1>Discover the Flavors of Thailand</h1>
+          <p class="lead">
+            Journey into a world of fragrant herbs, bright citrus, and comforting bowls inspired by vibrant Thai streets.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#recipe">Explore the recipe</a>
+            <button class="secondary-btn" type="button" id="travelMoment">Inspire my next trip</button>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <img src="https://edube.org/uploads/media/default/0001/04/thai-soup.jpg" alt="Tom Yum Goong" />
+          <div class="badge">Thai comfort • 20 min</div>
+        </div>
+      </section>
+
+      <section id="recipe" class="recipe-section">
+        <div class="section-heading">
+          <p class="eyebrow accent">Featured recipe</p>
+          <h2>Tom Yum Goong: A Spicy Thai Delight</h2>
+        </div>
+
+        <p>
+          Tom Yum Goong is a classic Thai soup renowned for its bold flavors and aromatic spices. This hot and sour soup features a tantalizing blend of lemongrass, galangal, and kaffir lime leaves, combined with succulent shrimp.
+        </p>
+
+        <blockquote id="quote-box">
+          "The key to a delicious Tom Yum Goong lies in the balance of flavors – sweet, sour, salty, and spicy."
+        </blockquote>
+
+        <img class="feature-image" src="https://edube.org/uploads/media/default/0001/04/thai-soup.jpg" alt="Tom Yum Goong" />
+        <br /><br />
+
+        <div class="recipe-grid">
+          <div class="recipe-column">
+            <h3>Ingredients:</h3>
+            <ul id="ingredients">
+              <li><strong>Lemongrass</strong>: 2 stalks</li>
+              <li><strong>Thai basil</strong>: 1 cup</li>
+              <li><strong>Kaffir Lime Leaves</strong>: 3 leaves</li>
+              <li><strong>Shrimp</strong>: 500g</li>
+            </ul>
+          </div>
+
+          <div class="recipe-column">
+            <h3>Preparation:</h3>
+            <ol>
+              <li><em>Simmer</em> the broth for 10 minutes.</li>
+              <li><em>Add</em> lemongrass, galangal, and kaffir lime leaves.</li>
+              <li><em>Stir</em> in shrimp and <em>cook</em> until pink.</li>
+              <li><em>Season</em> with fish sauce, lime juice, and chili paste.</li>
+              <li><em>Garnish</em> with Thai basil and serve hot.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div id="tips" class="tips-block">
+          <h3>Cooking Tips:</h3>
+          <ul>
+            <li>1/4 cup of fish sauce adds authentic Thai flavor.</li>
+            <li>1 tablespoon of chili paste gives the soup its signature heat.</li>
+            <li>Use <sup>1</sup> teaspoon lime juice for a bright finish on each serving.</li>
+            <li>Serve with steamed rice and a fresh side salad for a balanced meal.</li>
+          </ul>
+        </div>
+
+        <table>
+          <caption>Recipe Details</caption>
+          <thead>
+            <tr>
+              <th>Ingredient</th>
+              <th>Quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Lemongrass</td>
+              <td>2 stalks</td>
+            </tr>
+            <tr>
+              <td>Thai basil</td>
+              <td>1 cup</td>
+            </tr>
+            <tr>
+              <td>Kaffir Lime Leaves</td>
+              <td>3 leaves</td>
+            </tr>
+            <tr>
+              <td>Shrimp</td>
+              <td>500g</td>
+            </tr>
+            <tr>
+              <td colspan="2"><strong>Preparation Time:</strong> 20 minutes</td>
+            </tr>
+            <tr>
+              <td colspan="2"><strong>Serving Suggestions:</strong> Serve with steamed rice or jasmine tea.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© <span id="year"></span> Taste of Travel</p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
